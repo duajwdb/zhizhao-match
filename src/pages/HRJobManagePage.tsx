@@ -8,10 +8,12 @@ import {
 } from 'lucide-react'
 
 export default function HRJobManagePage() {
-  const { hrJobs, removeHrJob } = useAppStore()
+  const { removeHrJob, getMergedHrJobs, isPresetJob } = useAppStore()
   const { syncDeleteHrJob } = useSync()
   const navigate = useNavigate()
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
+
+  const mergedJobs = getMergedHrJobs()
 
   const positionLabels: Record<string, string> = {
     ai_engineer: 'AI工程师',
@@ -52,7 +54,7 @@ export default function HRJobManagePage() {
           </div>
         </div>
 
-        {hrJobs.length === 0 ? (
+        {mergedJobs.length === 0 ? (
           <div className="glass-card p-12 text-center">
             <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-white/5 flex items-center justify-center">
               <Briefcase className="w-8 h-8 text-slate-600" />
@@ -74,7 +76,7 @@ export default function HRJobManagePage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {hrJobs.map((job) => (
+                  {mergedJobs.map((job) => (
                     <tr key={job.id} className="border-b border-white/[0.02] hover:bg-white/[0.02] transition-colors">
                       <td className="p-4">
                         <span className="font-heading font-semibold text-white text-sm">{job.name}</span>
@@ -124,8 +126,13 @@ export default function HRJobManagePage() {
                             <FileText className="w-3.5 h-3.5" /> 查看
                           </button>
                           <button
-                            onClick={() => setDeleteConfirm(job.id)}
-                            className="p-1.5 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-all"
+                            onClick={() => { if (!isPresetJob(job)) setDeleteConfirm(job.id) }}
+                            className={`p-1.5 rounded-lg transition-all ${
+                              isPresetJob(job)
+                                ? 'text-slate-600 cursor-not-allowed'
+                                : 'text-slate-500 hover:text-red-400 hover:bg-red-500/10'
+                            }`}
+                            title={isPresetJob(job) ? '预设岗位不可删除' : '删除岗位'}
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
@@ -138,7 +145,7 @@ export default function HRJobManagePage() {
             </div>
 
             <div className="md:hidden space-y-3">
-              {hrJobs.map((job) => (
+              {mergedJobs.map((job) => (
                 <div key={job.id} className="glass-card p-5">
                   <div className="flex items-start justify-between mb-3">
                     <div>
@@ -159,8 +166,13 @@ export default function HRJobManagePage() {
                       匹配
                     </button>
                     <button
-                      onClick={() => setDeleteConfirm(job.id)}
-                      className="py-2 px-3 rounded-lg text-xs text-red-400 hover:bg-red-500/10 transition-all"
+                      onClick={() => { if (!isPresetJob(job)) setDeleteConfirm(job.id) }}
+                      className={`py-2 px-3 rounded-lg text-xs transition-all ${
+                        isPresetJob(job)
+                          ? 'text-slate-600 cursor-not-allowed'
+                          : 'text-red-400 hover:bg-red-500/10'
+                      }`}
+                      title={isPresetJob(job) ? '预设岗位不可删除' : '删除岗位'}
                     >
                       删除
                     </button>

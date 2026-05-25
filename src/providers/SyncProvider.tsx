@@ -1,5 +1,6 @@
-import { createContext, useContext, type ReactNode } from 'react'
+import { createContext, useContext, type ReactNode, useEffect, useRef } from 'react'
 import { useSupabaseSync, type SyncStatus } from '../hooks/useSupabaseSync'
+import { useAppStore } from '../store/useAppStore'
 import type { ProfileData, GrowthRecord, JobData } from '../store/useAppStore'
 interface SyncContextValue {
   syncStatus: SyncStatus
@@ -27,6 +28,15 @@ export function useSync(): SyncContextValue {
 
 export function SyncProvider({ children }: { children: ReactNode }) {
   const sync = useSupabaseSync()
+  const { isDemoUser, isAuthReady, loadPresets, userMode } = useAppStore()
+  const presetsLoaded = useRef(false)
+
+  useEffect(() => {
+    if ((isDemoUser || isAuthReady) && !presetsLoaded.current) {
+      presetsLoaded.current = true
+      loadPresets(userMode)
+    }
+  }, [isDemoUser, isAuthReady, userMode, loadPresets])
 
   const value: SyncContextValue = {
     syncStatus: sync.syncStatus,

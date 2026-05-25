@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
 import type { PersistStorage } from 'zustand/middleware'
+import { getPresetProfilesByMode, getPresetHrJobs } from '../data/presetProfiles'
 
 const DEMO_STORAGE_KEY = 'zhizhao-store-demo'
 const GUEST_STORAGE_KEY = 'zhizhao-store-guest'
@@ -122,13 +123,16 @@ export interface QuizAnswer {
 
 export type SyncStatus = 'idle' | 'loading' | 'syncing' | 'connected' | 'error'
 
-interface AppState {
+export interface AppState {
   userMode: UserMode
   selectedPosition: Position | null
   quizAnswers: QuizAnswer[]
   currentQuestionIndex: number
   currentProfile: ProfileData | null
   profileHistory: ProfileData[]
+  presetProfiles: ProfileData[]
+  presetJobs: JobData[]
+  presetLoaded: boolean
   growthRecords: GrowthRecord[]
   hrJobs: JobData[]
   jobseekerJobs: JobData[]
@@ -193,6 +197,13 @@ interface AppState {
   addSavedProfileId: (id: string) => void
   resetAllData: () => void
   logout: () => void
+  loadPresets: (mode: UserMode) => void
+  isPresetProfile: (profile: ProfileData) => boolean
+  isPresetJob: (job: JobData) => boolean
+  getMergedProfileHistory: () => ProfileData[]
+  getMergedHrJobs: () => JobData[]
+  getPresetNames: () => Set<string>
+  getPresetJobNames: () => Set<string>
 
   resetQuiz: () => void
   resetAll: () => void
@@ -207,6 +218,9 @@ export const useAppStore = create<AppState>()(
       currentQuestionIndex: 0,
       currentProfile: null,
       profileHistory: [],
+      presetProfiles: [],
+      presetJobs: [],
+      presetLoaded: false,
       growthRecords: [],
       hrJobs: [],
       jobseekerJobs: [],
@@ -419,6 +433,7 @@ export const useAppStore = create<AppState>()(
         } else {
           localStorage.removeItem(GUEST_STORAGE_KEY)
         }
+        const { presetProfiles, presetJobs, presetLoaded } = get()
         set({
           selectedPosition: null,
           quizAnswers: [],
@@ -437,7 +452,54 @@ export const useAppStore = create<AppState>()(
           isSharedAccount: false,
           syncStatus: 'idle',
           syncErrorMessage: null,
+          presetProfiles,
+          presetJobs,
+          presetLoaded,
         })
+      },
+      loadPresets: (mode) => {
+        if (get().presetLoaded) return
+        const profiles = getPresetProfilesByMode(mode)
+        const jobs = getPresetHrJobs()
+        set({ presetProfiles: profiles, presetJobs: jobs, presetLoaded: true })
+      },
+      isPresetProfile: (profile) => {
+        return get().presetProfiles.some(
+          (p) => p.name === profile.name && p.position === profile.position && p.mode === profile.mode
+        )
+      },
+      isPresetJob: (job) => {
+        return get().presetJobs.some((j) => j.id === job.id)
+      },
+      getMergedProfileHistory: () => {
+        const { profileHistory, presetProfiles, userMode } = get()
+        const preset = presetProfiles.filter((p) => p.mode === userMode)
+        const merged = [...profileHistory.filter((p) => p.mode === userMode)]
+        for (const pp of preset) {
+          if (!merged.some((up) => up.name === pp.name && up.position === pp.position)) {
+            merged.push(pp)
+          }
+        }
+        return merged.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      },
+      getMergedHrJobs: () => {
+        const { hrJobs, presetJobs } = get()
+        const merged = [...hrJobs]
+        for (const pj of presetJobs) {
+          if (!merged.some((uj) => uj.id === pj.id)) {
+            merged.push(pj)
+          }
+        }
+        return merged.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      },
+      getPresetNames: () => {
+        const { userMode, presetProfiles } = get()
+        return new Set(
+          presetProfiles.filter((p) => p.mode === userMode).map((p) => `${p.name}|${p.position}`)
+        )
+      },
+      getPresetJobNames: () => {
+        return new Set(get().presetJobs.map((j) => j.id))
       },
       logout: () => {
         if (getAuthMode() === 'demo') {

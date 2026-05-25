@@ -8,11 +8,11 @@ import {
 } from 'lucide-react'
 
 export default function DashboardPage() {
-  const { userMode, profileHistory, setPosition, hrCandidates } = useAppStore()
+  const { userMode, profileHistory, getMergedProfileHistory, isPresetProfile, setPosition, hrCandidates } = useAppStore()
   const navigate = useNavigate()
   const { syncDeleteProfile } = useSync()
 
-  const filteredHistory = profileHistory.filter((p) => p.mode === userMode)
+  const filteredHistory = getMergedProfileHistory()
 
   const handleStartQuiz = () => {
     setPosition('ai_engineer')
@@ -312,8 +312,13 @@ export default function DashboardPage() {
                       <Eye className="w-4 h-4" />
                     </button>
                     <button
-                      className="p-2 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-all"
-                      onClick={(e) => { e.stopPropagation(); syncDeleteProfile(index, profile.id) }}
+                      className={`p-2 rounded-lg transition-all ${
+                        isPresetProfile(profile)
+                          ? 'text-slate-600 cursor-not-allowed'
+                          : 'text-slate-400 hover:text-red-400 hover:bg-red-500/10'
+                      }`}
+                      onClick={(e) => { e.stopPropagation(); if (!isPresetProfile(profile)) syncDeleteProfile(index, profile.id) }}
+                      title={isPresetProfile(profile) ? '预设画像不可删除' : '删除画像'}
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
