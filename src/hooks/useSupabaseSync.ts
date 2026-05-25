@@ -42,6 +42,10 @@ function toProfileData(row: any): ProfileData {
   }
 }
 
+function truncateDate(dateStr: string): string {
+  return dateStr.replace('T', ' ').substring(0, 19)
+}
+
 function fromProfileData(profile: ProfileData): Record<string, unknown> {
   return {
     name: profile.name,
@@ -56,7 +60,7 @@ function fromProfileData(profile: ProfileData): Record<string, unknown> {
     total_score: profile.totalScore,
     star_rating: profile.starRating,
     text_report: profile.textReport,
-    date: profile.date,
+    date: truncateDate(profile.date),
     curve_node: profile.curveNode,
   }
 }

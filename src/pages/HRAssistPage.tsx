@@ -412,7 +412,7 @@ export default function HRAssistPage() {
         totalScore: result.totalScore,
         starRating: result.starRating,
         textReport: fullReport,
-        date: new Date().toISOString(),
+        date: new Date().toISOString().replace('T', ' ').substring(0, 19),
         curveNode: curveNode.label,
       }
 

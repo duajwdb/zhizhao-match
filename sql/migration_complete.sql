@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS candidate_profiles (
   total_score INTEGER NOT NULL DEFAULT 0,
   star_rating DECIMAL(2,1) NOT NULL DEFAULT 3.0,
   text_report TEXT,
-  date VARCHAR(20) NOT NULL,
+  date VARCHAR(50) NOT NULL,
   curve_node INTEGER NOT NULL DEFAULT 0,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -48,7 +48,7 @@ CREATE TABLE IF NOT EXISTS jobseeker_jobs (
 
 CREATE TABLE IF NOT EXISTS growth_records (
   id SERIAL PRIMARY KEY,
-  date VARCHAR(20) NOT NULL,
+  date VARCHAR(50) NOT NULL,
   score INTEGER NOT NULL DEFAULT 0,
   curve_node INTEGER NOT NULL DEFAULT 0,
   growth_plan TEXT DEFAULT '',
