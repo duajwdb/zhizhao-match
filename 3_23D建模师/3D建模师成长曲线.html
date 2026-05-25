@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D建模师成长曲线</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', 'Microsoft YaHei', 'PingFang SC', system-ui, sans-serif;
+            background: #070B1A;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+        .bg-gradient {
+            position: fixed; inset: 0; pointer-events: none; z-index: 0;
+        }
+        .bg-gradient::before {
+            content: '';
+            position: absolute; top: -20%; left: -10%;
+            width: 60%; height: 60%;
+            background: radial-gradient(ellipse, rgba(26,115,232,0.08) 0%, transparent 70%);
+        }
+        .bg-gradient::after {
+            content: '';
+            position: absolute; bottom: -10%; right: -10%;
+            width: 50%; height: 50%;
+            background: radial-gradient(ellipse, rgba(0,180,216,0.06) 0%, transparent 70%);
+        }
+        .container {
+            position: relative; z-index: 1;
+            max-width: 1300px; width: 100%;
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 20px; padding: 36px 32px 28px;
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+        }
+        .header { text-align: center; margin-bottom: 24px; }
+        .header-badge {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 4px 14px; border-radius: 999px;
+            background: rgba(0,180,216,0.1);
+            border: 1px solid rgba(0,180,216,0.2);
+            color: #22D3EE; font-size: 11px; font-weight: 600;
+            text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 12px;
+        }
+        .header h1 {
+            color: #F1F5F9; font-size: 26px; font-weight: 700;
+            margin-bottom: 6px; letter-spacing: -0.02em;
+        }
+        .subtitle { color: #64748B; font-size: 14px; }
+        .chart-wrapper {
+            position: relative; width: 100%; height: 460px; margin-bottom: 16px;
+        }
+        .tooltip-custom {
+            position: absolute;
+            background: rgba(15,23,42,0.96);
+            border: 1px solid rgba(255,255,255,0.08);
+            color: #E2E8F0; padding: 14px 16px; border-radius: 12px;
+            font-size: 12px; pointer-events: none; opacity: 0;
+            transition: opacity 0.15s; z-index: 1000; max-width: 280px;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+        .tooltip-custom.visible { opacity: 1; }
+        .tooltip-title {
+            font-weight: 600; margin-bottom: 8px; font-size: 13px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding-bottom: 6px; color: #F1F5F9;
+        }
+        .tooltip-row { display: flex; justify-content: space-between; margin: 4px 0; }
+        .tooltip-label { color: #94A3B8; }
+        .tooltip-value { font-weight: 600; color: #E2E8F0; }
+        .hint { text-align: center; color: #475569; font-size: 11px; margin-top: 12px; }
+    </style>
+</head>
+<body>
+    <div class="bg-gradient"></div>
+    <div class="container">
+        <div class="header">
+            <div class="header-badge">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+                成长追踪 · 3D建模师
+            </div>
+            <h1>3D建模师成长曲线</h1>
+            <p class="subtitle">四阶段15节点 · 七维度能力成长轨迹</p>
+        </div>
+        <div class="chart-wrapper">
+            <canvas id="growthChart"></canvas>
+            <div class="tooltip-custom" id="customTooltip"></div>
+        </div>
+        <p class="hint">点击图例或曲线可单独展示，点击曲线外区域恢复全部显示</p>
+    </div>
+
+    <script>
+        const data = [
+            { node: 1, time: 0, stage: '一', total: 0, software: 0, modeling: 0, uv: 0, art: 0, render: 0, project: 0, animation: 0, milestone: '起点' },
+            { node: 2, time: 1, stage: '一', total: 8, software: 15, modeling: 5, uv: 2, art: 8, render: 3, project: 2, animation: 1, milestone: '完成软件安装与界面熟悉' },
+            { node: 3, time: 2, stage: '一', total: 15, software: 30, modeling: 15, uv: 10, art: 20, render: 12, project: 8, animation: 5, milestone: '' },
+            { node: 4, time: 3, stage: '一', total: 22, software: 45, modeling: 28, uv: 22, art: 32, render: 26, project: 18, animation: 10, milestone: '通过官方初级技能等级考核' },
+            { node: 5, time: 4, stage: '二', total: 30, software: 55, modeling: 38, uv: 33, art: 42, render: 37, project: 26, animation: 15, milestone: '' },
+            { node: 6, time: 5, stage: '二', total: 37, software: 63, modeling: 48, uv: 42, art: 50, render: 45, project: 35, animation: 20, milestone: '参与商业外包/校内项目基础资产制作' },
+            { node: 7, time: 6, stage: '二', total: 44, software: 70, modeling: 58, uv: 50, art: 55, render: 53, project: 45, animation: 22, milestone: '完成第一套个人3D作品集' },
+            { node: 8, time: 9, stage: '二', total: 51, software: 74, modeling: 64, uv: 56, art: 60, render: 59, project: 52, animation: 25, milestone: '与团队配合完成全流程虚拟项目' },
+            { node: 9, time: 12, stage: '三', total: 58, software: 78, modeling: 68, uv: 62, art: 65, render: 64, project: 58, animation: 28, milestone: '获得首份3D相关实习/兼职' },
+            { node: 10, time: 15, stage: '三', total: 66, software: 82, modeling: 73, uv: 68, art: 70, render: 69, project: 64, animation: 32, milestone: '' },
+            { node: 11, time: 18, stage: '三', total: 73, software: 85, modeling: 78, uv: 73, art: 74, render: 73, project: 70, animation: 35, milestone: '掌握多款DCC软件协同' },
+            { node: 12, time: 21, stage: '三', total: 80, software: 88, modeling: 83, uv: 79, art: 78, render: 78, project: 77, animation: 38, milestone: '带领小组解决复杂建模难题' },
+            { node: 13, time: 24, stage: '四', total: 88, software: 92, modeling: 88, uv: 85, art: 83, render: 84, project: 84, animation: 42, milestone: '明确个人细分领域' },
+            { node: 14, time: 30, stage: '四', total: 95, software: 96, modeling: 93, uv: 91, art: 90, render: 91, project: 91, animation: 48, milestone: '受邀进行行业分享' },
+            { node: 15, time: 36, stage: '四', total: 100, software: 100, modeling: 100, uv: 100, art: 100, render: 100, project: 100, animation: 55, milestone: '达到高级/资深专业水准' }
+        ];
+
+        const dimensions = [
+            { key: 'total', label: '总分', color: '#1A73E8', pointColor: '#3B8CEE' },
+            { key: 'software', label: '软件操作', color: '#00B4D8', pointColor: '#22D3EE' },
+            { key: 'modeling', label: '建模技术', color: '#10B981', pointColor: '#34D399' },
+            { key: 'uv', label: 'UV纹理', color: '#F0A500', pointColor: '#FBBF24' },
+            { key: 'art', label: '美术素养', color: '#7C3AED', pointColor: '#A78BFA' },
+            { key: 'render', label: '渲染光照', color: '#EC4899', pointColor: '#F472B6' },
+            { key: 'project', label: '项目实践', color: '#EF4444', pointColor: '#F87171' },
+            { key: 'animation', label: '动画绑定', color: '#14B8A6', pointColor: '#2DD4BF' }
+        ];
+
+        let activeDatasetIndex = -1;
+
+        const datasets = dimensions.map(dim => ({
+            label: dim.label,
+            data: [{ x: 0, y: 0 }],
+            borderColor: dim.color,
+            backgroundColor: dim.color + '18',
+            borderWidth: dim.key === 'total' ? 4 : 2.5,
+            pointRadius: 0,
+            pointHoverRadius: dim.key === 'total' ? 8 : 6,
+            pointBackgroundColor: dim.pointColor,
+            pointBorderColor: dim.pointColor,
+            pointBorderWidth: 0,
+            pointHoverBorderColor: dim.pointColor,
+            pointHoverBorderWidth: 2,
+            tension: 0.4,
+            spanGaps: true,
+            fill: false,
+            hidden: false
+        }));
+
+        const fullData = dimensions.map(dim => data.map(d => ({ x: d.time, y: d[dim.key] })));
+
+        const ctx = document.getElementById('growthChart').getContext('2d');
+        const chart = new Chart(ctx, {
+            type: 'line',
+            data: { datasets },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: false,
+                interaction: { mode: 'nearest', axis: 'xy', intersect: true },
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'right',
+                        labels: {
+                            boxWidth: 26, boxHeight: 8, padding: 22,
+                            font: { size: 13, weight: '600', family: "'Inter','Microsoft YaHei',sans-serif" },
+                            color: '#94A3B8',
+                            usePointStyle: false, borderRadius: 3,
+                            generateLabels: function(chart) {
+                                return dimensions.map((dim, i) => ({
+                                    text: dim.label, fillStyle: dim.color, strokeStyle: dim.pointColor,
+                                    lineWidth: 2, hidden: !chart.isDatasetVisible(i), index: i,
+                                    lineCap: 'round', lineDash: [], lineDashOffset: 0, lineJoin: 'round',
+                                    pointStyle: 'rectRounded', rotation: 0, borderRadius: 3
+                                }));
+                            }
+                        },
+                        onClick: function(evt, legendItem, legend) {
+                            const index = legendItem.index;
+                            if (activeDatasetIndex === index) {
+                                activeDatasetIndex = -1;
+                                datasets.forEach((ds, i) => { ds.hidden = false; ds.borderWidth = i === 0 ? 4 : 2.5; ds.pointRadius = i === 0 ? 5 : 3; });
+                            } else {
+                                activeDatasetIndex = index;
+                                datasets.forEach((ds, i) => { if (i === index) { ds.hidden = false; ds.borderWidth = 5; ds.pointRadius = 7; } else { ds.hidden = true; } });
+                            }
+                            legend.chart.update();
+                        }
+                    },
+                    tooltip: { enabled: false },
+                    annotation: { annotations: {} }
+                },
+                scales: {
+                    x: {
+                        type: 'linear',
+                        title: { display: true, text: '累计时间（月）', font: { size: 13, weight: '600', family: "'Inter','Microsoft YaHei',sans-serif" }, color: '#94A3B8' },
+                        min: 0, max: 40,
+                        ticks: { stepSize: 6, font: { size: 11, family: "'Inter','Microsoft YaHei',sans-serif" }, color: '#64748B' },
+                        grid: { color: 'rgba(255,255,255,0.04)' },
+                        border: { color: 'rgba(255,255,255,0.06)' }
+                    },
+                    y: {
+                        title: { display: true, text: '能力得分（%）', font: { size: 13, weight: '600', family: "'Inter','Microsoft YaHei',sans-serif" }, color: '#94A3B8' },
+                        min: 0, max: 100,
+                        ticks: { stepSize: 10, callback: value => value + '%', font: { size: 11, family: "'Inter','Microsoft YaHei',sans-serif" }, color: '#64748B' },
+                        grid: { color: 'rgba(255,255,255,0.04)' },
+                        border: { color: 'rgba(255,255,255,0.06)' }
+                    }
+                },
+                onClick: (evt, elements) => {
+                    if (elements.length > 0) {
+                        const clickedIndex = elements[0].datasetIndex;
+                        if (activeDatasetIndex === clickedIndex) {
+                            activeDatasetIndex = -1;
+                            datasets.forEach((ds, i) => { ds.hidden = false; ds.borderWidth = i === 0 ? 4 : 2.5; ds.pointRadius = i === 0 ? 5 : 3; });
+                        } else {
+                            activeDatasetIndex = clickedIndex;
+                            datasets.forEach((ds, i) => { if (i === clickedIndex) { ds.hidden = false; ds.borderWidth = 5; ds.pointRadius = 7; } else { ds.hidden = true; } });
+                        }
+                        chart.update();
+                    } else if (activeDatasetIndex !== -1) {
+                        activeDatasetIndex = -1;
+                        datasets.forEach((ds, i) => { ds.hidden = false; ds.borderWidth = i === 0 ? 4 : 2.5; ds.pointRadius = i === 0 ? 5 : 3; });
+                        chart.update();
+                    }
+                }
+            },
+            plugins: [{
+                id: 'customTooltipPlugin',
+                afterEvent(chart, args) {
+                    const tooltipEl = document.getElementById('customTooltip');
+                    const event = args.event;
+                    if (event && event.type === 'mousemove') {
+                        const elements = chart.getElementsAtEventForMode(event, 'nearest', { axis: 'xy', intersect: true }, false);
+                        if (elements.length > 0) {
+                            const element = elements[0];
+                            const dataPoint = data[element.index];
+                            const dim = dimensions[element.datasetIndex];
+                            let html = '<div class="tooltip-title">节点' + dataPoint.node + ' · ' + dataPoint.time + '个月</div>';
+                            html += '<div class="tooltip-row"><span class="tooltip-label">阶段：</span><span class="tooltip-value">第' + dataPoint.stage + '阶段</span></div>';
+                            html += '<div class="tooltip-row"><span class="tooltip-label">总分：</span><span class="tooltip-value">' + dataPoint.total + '%</span></div>';
+                            html += '<div class="tooltip-row"><span class="tooltip-label">' + dim.label + '：</span><span class="tooltip-value">' + dataPoint[dim.key] + '%</span></div>';
+                            if (dataPoint.milestone) {
+                                html += '<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.1)">';
+                                html += '<div class="tooltip-label">里程碑</div><div class="tooltip-value">' + dataPoint.milestone + '</div></div>';
+                            }
+                            tooltipEl.innerHTML = html;
+                            tooltipEl.classList.add('visible');
+                            const canvasRect = chart.canvas.getBoundingClientRect();
+                            const containerRect = chart.canvas.parentElement.getBoundingClientRect();
+                            let left = canvasRect.left - containerRect.left + element.element.x + 15;
+                            let top = canvasRect.top - containerRect.top + element.element.y - 20;
+                            if (left + 280 > containerRect.width) left = left - 300;
+                            if (top < 0) top = 10;
+                            tooltipEl.style.left = left + 'px';
+                            tooltipEl.style.top = top + 'px';
+                        } else { tooltipEl.classList.remove('visible'); }
+                    } else if (event && event.type === 'mouseout') { tooltipEl.classList.remove('visible'); }
+                }
+            }, {
+                id: 'milestoneLabels',
+                afterDraw(chart) {
+                    const ctx = chart.ctx;
+                    data.forEach((d, i) => {
+                        if (d.milestone) {
+                            const meta = chart.getDatasetMeta(0);
+                            if (meta.data[i]) {
+                                const point = meta.data[i];
+                                ctx.save();
+                                ctx.fillStyle = '#F0A500'; ctx.strokeStyle = '#FBBF24'; ctx.lineWidth = 2;
+                                ctx.beginPath();
+                                ctx.arc(point.x, point.y - 15, 7, 0, Math.PI * 2);
+                                ctx.fill(); ctx.stroke();
+                                ctx.fillStyle = '#0F172A';
+                                ctx.font = 'bold 14px "Inter","Microsoft YaHei",sans-serif';
+                                ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                                ctx.fillText('★', point.x, point.y - 15);
+                                ctx.restore();
+                            }
+                        }
+                    });
+                }
+            }]
+        });
+
+        const ANIMATION_DURATION = 2200;
+        let animationStart = null;
+        function easeInOutCubic(t) { return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; }
+        function animateCurves(timestamp) {
+            if (!animationStart) animationStart = timestamp;
+            const elapsed = timestamp - animationStart;
+            const progress = Math.min(elapsed / ANIMATION_DURATION, 1);
+            const easedProgress = easeInOutCubic(progress);
+            const maxTime = 36;
+            const currentTime = easedProgress * maxTime;
+            datasets.forEach((ds, i) => {
+                const full = fullData[i];
+                const animatedData = [{ x: 0, y: 0 }];
+                for (let j = 1; j < full.length; j++) {
+                    if (full[j].x <= currentTime) { animatedData.push(full[j]); }
+                    else {
+                        const prev = full[j - 1]; const curr = full[j];
+                        const ratio = (currentTime - prev.x) / (curr.x - prev.x);
+                        animatedData.push({ x: currentTime, y: prev.y + (curr.y - prev.y) * ratio });
+                        break;
+                    }
+                }
+                ds.data = animatedData;
+            });
+            if (progress < 1) { chart.update('none'); requestAnimationFrame(animateCurves); }
+            else {
+                datasets.forEach((ds, i) => { ds.data = fullData[i]; ds.borderWidth = i === 0 ? 4 : 2.5; ds.pointRadius = i === 0 ? 5 : 3; });
+                chart.update();
+            }
+        }
+        requestAnimationFrame(animateCurves);
+    </script>
+</body>
+</html>

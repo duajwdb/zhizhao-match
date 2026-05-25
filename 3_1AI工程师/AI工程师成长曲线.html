@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI工程师成长曲线</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Inter', 'Microsoft YaHei', 'PingFang SC', system-ui, sans-serif;
+            background: #070B1A;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+        .bg-gradient {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 0;
+        }
+        .bg-gradient::before {
+            content: '';
+            position: absolute;
+            top: -20%;
+            left: -10%;
+            width: 60%;
+            height: 60%;
+            background: radial-gradient(ellipse, rgba(26,115,232,0.08) 0%, transparent 70%);
+        }
+        .bg-gradient::after {
+            content: '';
+            position: absolute;
+            bottom: -10%;
+            right: -10%;
+            width: 50%;
+            height: 50%;
+            background: radial-gradient(ellipse, rgba(0,180,216,0.06) 0%, transparent 70%);
+        }
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 1300px;
+            width: 100%;
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 20px;
+            padding: 36px 32px 28px;
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+        .header-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 14px;
+            border-radius: 999px;
+            background: rgba(26,115,232,0.1);
+            border: 1px solid rgba(26,115,232,0.2);
+            color: #5B9BEE;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 12px;
+        }
+        .header h1 {
+            color: #F1F5F9;
+            font-size: 26px;
+            font-weight: 700;
+            margin-bottom: 6px;
+            letter-spacing: -0.02em;
+        }
+        .subtitle {
+            color: #64748B;
+            font-size: 14px;
+        }
+        .chart-wrapper {
+            position: relative;
+            width: 100%;
+            height: 460px;
+            margin-bottom: 16px;
+        }
+        .tooltip-custom {
+            position: absolute;
+            background: rgba(15,23,42,0.96);
+            border: 1px solid rgba(255,255,255,0.08);
+            color: #E2E8F0;
+            padding: 14px 16px;
+            border-radius: 12px;
+            font-size: 12px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.15s;
+            z-index: 1000;
+            max-width: 280px;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+        .tooltip-custom.visible {
+            opacity: 1;
+        }
+        .tooltip-title {
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 13px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding-bottom: 6px;
+            color: #F1F5F9;
+        }
+        .tooltip-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 4px 0;
+        }
+        .tooltip-label {
+            color: #94A3B8;
+        }
+        .tooltip-value {
+            font-weight: 600;
+            color: #E2E8F0;
+        }
+        .hint {
+            text-align: center;
+            color: #475569;
+            font-size: 11px;
+            margin-top: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-gradient"></div>
+    <div class="container">
+        <div class="header">
+            <div class="header-badge">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+                成长追踪 · AI工程师
+            </div>
+            <h1>AI工程师成长曲线</h1>
+            <p class="subtitle">四阶段15节点 · 六维度能力成长轨迹</p>
+        </div>
+        <div class="chart-wrapper">
+            <canvas id="growthChart"></canvas>
+            <div class="tooltip-custom" id="customTooltip"></div>
+        </div>
+        <p class="hint">点击图例或曲线可单独展示，点击曲线外区域恢复全部显示</p>
+    </div>
+
+    <script>
+        const data = [
+            { node: 1, time: 0, stage: '一', total: 0, theory: 0, aiCore: 0, engineering: 0, scenario: 0, compliance: 0, innovation: 0, milestone: '起点' },
+            { node: 2, time: 1, stage: '一', total: 10, theory: 15.0, aiCore: 7.5, engineering: 2.5, scenario: 5.0, compliance: 7.5, innovation: 2.5, milestone: '完成第一个AI API调用项目' },
+            { node: 3, time: 2, stage: '一', total: 20, theory: 30.0, aiCore: 15.0, engineering: 5.0, scenario: 10.0, compliance: 15.0, innovation: 5.0, milestone: '' },
+            { node: 4, time: 4, stage: '二', total: 30, theory: 39.4, aiCore: 26.3, engineering: 16.3, scenario: 17.5, compliance: 22.5, innovation: 8.8, milestone: '' },
+            { node: 5, time: 6, stage: '二', total: 40, theory: 49.8, aiCore: 38.8, engineering: 28.8, scenario: 25.8, compliance: 30.8, innovation: 12.9, milestone: '' },
+            { node: 6, time: 8, stage: '二', total: 45, theory: 55.0, aiCore: 50.0, engineering: 35.0, scenario: 30.0, compliance: 35.0, innovation: 15.0, milestone: '项目实现Docker化部署，具备基本工程能力' },
+            { node: 7, time: 10, stage: '三', total: 50, theory: 57.5, aiCore: 54.2, engineering: 40.0, scenario: 34.2, compliance: 38.3, innovation: 17.5, milestone: '' },
+            { node: 8, time: 12, stage: '三', total: 60, theory: 63.8, aiCore: 61.7, engineering: 50.0, scenario: 42.9, compliance: 45.8, innovation: 22.5, milestone: '完整MLOps管道建立' },
+            { node: 9, time: 15, stage: '三', total: 65, theory: 66.9, aiCore: 65.4, engineering: 55.0, scenario: 47.1, compliance: 49.6, innovation: 25.0, milestone: '' },
+            { node: 10, time: 18, stage: '三', total: 70, theory: 70.0, aiCore: 70.0, engineering: 65.0, scenario: 55.0, compliance: 55.0, innovation: 30.0, milestone: '主导首个AI项目交付' },
+            { node: 11, time: 21, stage: '四', total: 75, theory: 72.1, aiCore: 72.8, engineering: 68.6, scenario: 58.6, compliance: 58.6, innovation: 34.1, milestone: '' },
+            { node: 12, time: 24, stage: '四', total: 80, theory: 74.7, aiCore: 75.9, engineering: 72.4, scenario: 62.8, compliance: 62.8, innovation: 38.6, milestone: '成为团队AI技术骨干' },
+            { node: 13, time: 30, stage: '四', total: 90, theory: 79.8, aiCore: 82.1, engineering: 80.2, scenario: 71.0, compliance: 71.0, innovation: 47.6, milestone: '' },
+            { node: 14, time: 36, stage: '四', total: 95, theory: 82.4, aiCore: 86.0, engineering: 84.1, scenario: 75.5, compliance: 75.5, innovation: 53.8, milestone: '负责系统架构设计' },
+            { node: 15, time: 48, stage: '四', total: 100, theory: 85.0, aiCore: 90.0, engineering: 90.0, scenario: 80.0, compliance: 80.0, innovation: 60.0, milestone: '达到AI架构师水平' }
+        ];
+
+        const dimensions = [
+            { key: 'total', label: '总分', color: '#1A73E8', pointColor: '#3B8CEE' },
+            { key: 'theory', label: '基础理论', color: '#00B4D8', pointColor: '#22D3EE' },
+            { key: 'aiCore', label: 'AI核心', color: '#10B981', pointColor: '#34D399' },
+            { key: 'engineering', label: '工程落地', color: '#F0A500', pointColor: '#FBBF24' },
+            { key: 'scenario', label: '场景转化', color: '#7C3AED', pointColor: '#A78BFA' },
+            { key: 'compliance', label: '合规软技能', color: '#EC4899', pointColor: '#F472B6' },
+            { key: 'innovation', label: '前沿创新', color: '#EF4444', pointColor: '#F87171' }
+        ];
+
+        let activeDatasetIndex = -1;
+
+        const datasets = dimensions.map(dim => ({
+            label: dim.label,
+            data: [{ x: 0, y: 0 }],
+            borderColor: dim.color,
+            backgroundColor: dim.color + '18',
+            borderWidth: dim.key === 'total' ? 4 : 2.5,
+            pointRadius: 0,
+            pointHoverRadius: dim.key === 'total' ? 8 : 6,
+            pointBackgroundColor: dim.pointColor,
+            pointBorderColor: dim.pointColor,
+            pointBorderWidth: 0,
+            pointHoverBorderColor: dim.pointColor,
+            pointHoverBorderWidth: 2,
+            tension: 0.4,
+            spanGaps: true,
+            fill: false,
+            hidden: false
+        }));
+
+        const fullData = dimensions.map(dim => data.map(d => ({ x: d.time, y: d[dim.key] })));
+
+        const ctx = document.getElementById('growthChart').getContext('2d');
+        const chart = new Chart(ctx, {
+            type: 'line',
+            data: { datasets },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: false,
+                interaction: {
+                    mode: 'nearest',
+                    axis: 'xy',
+                    intersect: true
+                },
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'right',
+                        labels: {
+                            boxWidth: 26,
+                            boxHeight: 8,
+                            padding: 22,
+                            font: { size: 13, weight: '600', family: "'Inter','Microsoft YaHei',sans-serif" },
+                            color: '#94A3B8',
+                            usePointStyle: false,
+                            borderRadius: 3,
+                            generateLabels: function(chart) {
+                                return dimensions.map((dim, i) => ({
+                                    text: dim.label,
+                                    fillStyle: dim.color,
+                                    strokeStyle: dim.pointColor,
+                                    lineWidth: 2,
+                                    hidden: !chart.isDatasetVisible(i),
+                                    index: i,
+                                    lineCap: 'round',
+                                    lineDash: [],
+                                    lineDashOffset: 0,
+                                    lineJoin: 'round',
+                                    pointStyle: 'rectRounded',
+                                    rotation: 0,
+                                    borderRadius: 3
+                                }));
+                            }
+                        },
+                        onClick: function(evt, legendItem, legend) {
+                            const index = legendItem.index;
+                            if (activeDatasetIndex === index) {
+                                activeDatasetIndex = -1;
+                                datasets.forEach((ds, i) => {
+                                    ds.hidden = false;
+                                    ds.borderWidth = i === 0 ? 4 : 2.5;
+                                    ds.pointRadius = i === 0 ? 5 : 3;
+                                });
+                            } else {
+                                activeDatasetIndex = index;
+                                datasets.forEach((ds, i) => {
+                                    if (i === index) { ds.hidden = false; ds.borderWidth = 5; ds.pointRadius = 7; }
+                                    else { ds.hidden = true; }
+                                });
+                            }
+                            legend.chart.update();
+                        }
+                    },
+                    tooltip: { enabled: false },
+                    annotation: { annotations: {} }
+                },
+                scales: {
+                    x: {
+                        type: 'linear',
+                        title: {
+                            display: true,
+                            text: '累计时间（月）',
+                            font: { size: 13, weight: '600', family: "'Inter','Microsoft YaHei',sans-serif" },
+                            color: '#94A3B8'
+                        },
+                        min: 0,
+                        max: 50,
+                        ticks: {
+                            stepSize: 6,
+                            font: { size: 11, family: "'Inter','Microsoft YaHei',sans-serif" },
+                            color: '#64748B'
+                        },
+                        grid: { color: 'rgba(255,255,255,0.04)' },
+                        border: { color: 'rgba(255,255,255,0.06)' }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: '能力得分（%）',
+                            font: { size: 13, weight: '600', family: "'Inter','Microsoft YaHei',sans-serif" },
+                            color: '#94A3B8'
+                        },
+                        min: 0,
+                        max: 100,
+                        ticks: {
+                            stepSize: 10,
+                            callback: value => value + '%',
+                            font: { size: 11, family: "'Inter','Microsoft YaHei',sans-serif" },
+                            color: '#64748B'
+                        },
+                        grid: { color: 'rgba(255,255,255,0.04)' },
+                        border: { color: 'rgba(255,255,255,0.06)' }
+                    }
+                },
+                onClick: (evt, elements) => {
+                    if (elements.length > 0) {
+                        const clickedIndex = elements[0].datasetIndex;
+                        if (activeDatasetIndex === clickedIndex) {
+                            activeDatasetIndex = -1;
+                            datasets.forEach((ds, i) => {
+                                ds.hidden = false;
+                                ds.borderWidth = i === 0 ? 4 : 2.5;
+                                ds.pointRadius = i === 0 ? 5 : 3;
+                            });
+                        } else {
+                            activeDatasetIndex = clickedIndex;
+                            datasets.forEach((ds, i) => {
+                                if (i === clickedIndex) { ds.hidden = false; ds.borderWidth = 5; ds.pointRadius = 7; }
+                                else { ds.hidden = true; }
+                            });
+                        }
+                        chart.update();
+                    } else if (activeDatasetIndex !== -1) {
+                        activeDatasetIndex = -1;
+                        datasets.forEach((ds, i) => {
+                            ds.hidden = false;
+                            ds.borderWidth = i === 0 ? 4 : 2.5;
+                            ds.pointRadius = i === 0 ? 5 : 3;
+                        });
+                        chart.update();
+                    }
+                }
+            },
+            plugins: [{
+                id: 'customTooltipPlugin',
+                afterEvent(chart, args) {
+                    const tooltipEl = document.getElementById('customTooltip');
+                    const event = args.event;
+                    if (event && event.type === 'mousemove') {
+                        const elements = chart.getElementsAtEventForMode(event, 'nearest', { axis: 'xy', intersect: true }, false);
+                        if (elements.length > 0) {
+                            const element = elements[0];
+                            const datasetIndex = element.datasetIndex;
+                            const index = element.index;
+                            const dataPoint = data[index];
+                            const dim = dimensions[datasetIndex];
+                            let html = '<div class="tooltip-title">节点' + dataPoint.node + ' · ' + dataPoint.time + '个月</div>';
+                            html += '<div class="tooltip-row"><span class="tooltip-label">阶段：</span><span class="tooltip-value">第' + dataPoint.stage + '阶段</span></div>';
+                            html += '<div class="tooltip-row"><span class="tooltip-label">总分：</span><span class="tooltip-value">' + dataPoint.total + '%</span></div>';
+                            html += '<div class="tooltip-row"><span class="tooltip-label">' + dim.label + '：</span><span class="tooltip-value">' + dataPoint[dim.key] + '%</span></div>';
+                            if (dataPoint.milestone) {
+                                html += '<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.1)">';
+                                html += '<div class="tooltip-label">里程碑</div>';
+                                html += '<div class="tooltip-value">' + dataPoint.milestone + '</div>';
+                                html += '</div>';
+                            }
+                            tooltipEl.innerHTML = html;
+                            tooltipEl.classList.add('visible');
+                            const canvasRect = chart.canvas.getBoundingClientRect();
+                            const containerRect = chart.canvas.parentElement.getBoundingClientRect();
+                            let left = canvasRect.left - containerRect.left + element.element.x + 15;
+                            let top = canvasRect.top - containerRect.top + element.element.y - 20;
+                            if (left + 280 > containerRect.width) left = left - 300;
+                            if (top < 0) top = 10;
+                            tooltipEl.style.left = left + 'px';
+                            tooltipEl.style.top = top + 'px';
+                        } else {
+                            tooltipEl.classList.remove('visible');
+                        }
+                    } else if (event && event.type === 'mouseout') {
+                        tooltipEl.classList.remove('visible');
+                    }
+                }
+            }, {
+                id: 'milestoneLabels',
+                afterDraw(chart) {
+                    const ctx = chart.ctx;
+                    data.forEach((d, i) => {
+                        if (d.milestone) {
+                            const meta = chart.getDatasetMeta(0);
+                            if (meta.data[i]) {
+                                const point = meta.data[i];
+                                ctx.save();
+                                ctx.fillStyle = '#F0A500';
+                                ctx.strokeStyle = '#FBBF24';
+                                ctx.lineWidth = 2;
+                                ctx.beginPath();
+                                ctx.arc(point.x, point.y - 15, 7, 0, Math.PI * 2);
+                                ctx.fill();
+                                ctx.stroke();
+                                ctx.fillStyle = '#0F172A';
+                                ctx.font = 'bold 14px "Inter","Microsoft YaHei",sans-serif';
+                                ctx.textAlign = 'center';
+                                ctx.textBaseline = 'middle';
+                                ctx.fillText('★', point.x, point.y - 15);
+                                ctx.restore();
+                            }
+                        }
+                    });
+                }
+            }]
+        });
+
+        const ANIMATION_DURATION = 2200;
+        let animationStart = null;
+        function easeInOutCubic(t) { return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; }
+        function animateCurves(timestamp) {
+            if (!animationStart) animationStart = timestamp;
+            const elapsed = timestamp - animationStart;
+            const progress = Math.min(elapsed / ANIMATION_DURATION, 1);
+            const easedProgress = easeInOutCubic(progress);
+            const maxTime = 48;
+            const currentTime = easedProgress * maxTime;
+            datasets.forEach((ds, i) => {
+                const full = fullData[i];
+                const animatedData = [{ x: 0, y: 0 }];
+                for (let j = 1; j < full.length; j++) {
+                    if (full[j].x <= currentTime) { animatedData.push(full[j]); }
+                    else {
+                        const prev = full[j - 1];
+                        const curr = full[j];
+                        const ratio = (currentTime - prev.x) / (curr.x - prev.x);
+                        animatedData.push({ x: currentTime, y: prev.y + (curr.y - prev.y) * ratio });
+                        break;
+                    }
+                }
+                ds.data = animatedData;
+            });
+            if (progress < 1) {
+                chart.update('none');
+                requestAnimationFrame(animateCurves);
+            } else {
+                datasets.forEach((ds, i) => { ds.data = fullData[i]; ds.borderWidth = i === 0 ? 4 : 2.5; ds.pointRadius = i === 0 ? 5 : 3; });
+                chart.update();
+            }
+        }
+        requestAnimationFrame(animateCurves);
+    </script>
+</body>
+</html>
