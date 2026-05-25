@@ -148,21 +148,6 @@ export function useSupabaseSync() {
           if (isShared) {
             if (profilesResult.value.length > 0) {
               store.setProfileHistory(profilesResult.value.map(toProfileData))
-            } else if (store.profileHistory.length > 0) {
-              for (const p of store.profileHistory) {
-                insertCandidateProfile(fromProfileData(p)).catch(() => {})
-                const dimScores: Record<string, number> = {}
-                p.dimensions.forEach((d) => { dimScores[d.name] = d.score })
-                insertSingleTalent({
-                  position: p.position,
-                  name: p.name,
-                  dimension_scores: dimScores,
-                  total_score: p.totalScore,
-                  skill_profile: p.textReport,
-                  reputation: 4.0,
-                  sort_order: 999,
-                }).catch(() => {})
-              }
             }
           } else if (store.profileHistory.length === 0) {
             store.setProfileHistory(profilesResult.value.map(toProfileData))
@@ -173,23 +158,6 @@ export function useSupabaseSync() {
           if (isShared) {
             if (hrJobsResult.value.length > 0) {
               store.setHrJobs(hrJobsResult.value.map((r) => toJobData(r as unknown as Record<string, unknown>, true)))
-            } else if (store.hrJobs.length > 0) {
-              for (const j of store.hrJobs) {
-                insertHrJob(fromJobData(j)).catch(() => {})
-                const dimScores: Record<string, number> = {}
-                j.dimensions.forEach((d) => { dimScores[d.name] = d.score })
-                insertSingleJob({
-                  position: j.position,
-                  company_name: j.company || '未指定公司',
-                  job_name: j.name,
-                  responsibilities: j.description,
-                  requirements: j.profileDoc,
-                  dimension_scores: dimScores,
-                  demand_intensity: j.totalScore || 0,
-                  suggested_level: j.starRating >= 4 ? '高级' : j.starRating >= 3 ? '中级' : '初级',
-                  sort_order: 999,
-                }).catch(() => {})
-              }
             }
           } else if (store.hrJobs.length === 0) {
             store.setHrJobs(hrJobsResult.value.map((r) => toJobData(r as unknown as Record<string, unknown>, true)))
@@ -215,15 +183,6 @@ export function useSupabaseSync() {
                 curveNode: r.curve_node,
                 growthPlan: r.growth_plan,
               })))
-            } else if (store.growthRecords.length > 0) {
-              for (const g of store.growthRecords) {
-                insertGrowthRecord({
-                  date: g.date,
-                  score: g.score,
-                  curve_node: g.curveNode,
-                  growth_plan: g.growthPlan,
-                }).catch(() => {})
-              }
             }
           } else if (store.growthRecords.length === 0) {
             store.setGrowthRecords(growthResult.value.map((r) => ({

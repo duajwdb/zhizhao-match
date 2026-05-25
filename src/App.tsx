@@ -1,7 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { Routes, Route } from 'react-router-dom'
-import { useAppStore, setAuthMode } from './store/useAppStore'
-import { rehydrateStore } from './store/useAppStore'
+import { useAppStore, setAuthMode, rehydrateStore } from './store/useAppStore'
 import { getExistingSessionWithTimeout, isSupabaseConfigured } from './config/supabaseClient'
 import ErrorBoundary from './components/ErrorBoundary'
 import Layout from './components/Layout'
@@ -116,6 +115,12 @@ export default function App() {
     let cancelled = false
 
     const init = async () => {
+      const existingAuthMode = (() => {
+        try { return localStorage.getItem('zhizhao_auth_mode') as 'demo' | 'guest' | null }
+        catch { return null }
+      })()
+      const preservedMode = existingAuthMode || 'guest'
+
       if (!isSupabaseConfigured()) {
         setAuthMode('guest')
         await rehydrateStore()
@@ -135,8 +140,12 @@ export default function App() {
           await rehydrateStore()
           setDemoAuth(session.userId, true)
         } else {
-          setAuthMode('guest')
-          await rehydrateStore()
+          if (preservedMode === 'demo') {
+            await rehydrateStore()
+          } else {
+            setAuthMode('guest')
+            await rehydrateStore()
+          }
         }
       } catch (err) {
         if (cancelled) return
