@@ -409,6 +409,13 @@ export default function MatchPage() {
       setMatchMode(usedMode)
 
       ranked.sort((a, b) => b.matchScore - a.matchScore)
+      const seen = new Set<string>()
+      ranked = ranked.filter((c) => {
+        const key = `${c.name}|${c.position || matchedPosition}`
+        if (seen.has(key)) return false
+        seen.add(key)
+        return true
+      })
       setCandidates(ranked)
       setStage('done')
       setIsRunning(false)

@@ -305,8 +305,26 @@ export async function insertTalentBatch(talents: Record<string, unknown>[]): Pro
   }
 }
 
+export async function checkDuplicateTalent(name: string, position: string): Promise<boolean> {
+  try {
+    const { data, error } = await withTimeout(
+      supabase.from('talent_pool').select('id').eq('name', name).eq('position', position).limit(1),
+      'checkDuplicateTalent'
+    )
+    if (error) throw error
+    return (data?.length ?? 0) > 0
+  } catch (err) {
+    handleError(err, 'checkDuplicateTalent')
+    return false
+  }
+}
+
 export async function insertSingleTalent(talent: Record<string, unknown>): Promise<any | null> {
   try {
+    const name = String(talent.name || '')
+    const position = String(talent.position || '')
+    const isDup = await checkDuplicateTalent(name, position)
+    if (isDup) return null
     const { data, error } = await withTimeout(
       supabase.from('talent_pool').insert(talent).select().single(),
       'insertSingleTalent'
@@ -384,8 +402,26 @@ export async function insertJobBatch(jobs: Record<string, unknown>[]): Promise<{
   }
 }
 
+export async function checkDuplicateJob(jobName: string, position: string): Promise<boolean> {
+  try {
+    const { data, error } = await withTimeout(
+      supabase.from('job_pool').select('id').eq('job_name', jobName).eq('position', position).limit(1),
+      'checkDuplicateJob'
+    )
+    if (error) throw error
+    return (data?.length ?? 0) > 0
+  } catch (err) {
+    handleError(err, 'checkDuplicateJob')
+    return false
+  }
+}
+
 export async function insertSingleJob(job: Record<string, unknown>): Promise<any | null> {
   try {
+    const jobName = String(job.job_name || job.name || '')
+    const position = String(job.position || '')
+    const isDup = await checkDuplicateJob(jobName, position)
+    if (isDup) return null
     const { data, error } = await withTimeout(
       supabase.from('job_pool').insert(job).select().single(),
       'insertSingleJob'

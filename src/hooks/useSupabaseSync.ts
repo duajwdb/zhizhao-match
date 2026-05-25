@@ -147,7 +147,16 @@ export function useSupabaseSync() {
         if (profilesResult.status === 'fulfilled') {
           if (isShared) {
             if (profilesResult.value.length > 0) {
-              store.setProfileHistory(profilesResult.value.map(toProfileData))
+              const remoteProfiles = profilesResult.value.map(toProfileData)
+              const localProfiles = [...store.profileHistory]
+              const merged = [...remoteProfiles]
+              for (const lp of localProfiles) {
+                const key = `${lp.name}|${lp.position}`
+                if (!merged.some((rp) => `${rp.name}|${rp.position}` === key)) {
+                  merged.push(lp)
+                }
+              }
+              store.setProfileHistory(merged)
             }
           } else if (store.profileHistory.length === 0) {
             store.setProfileHistory(profilesResult.value.map(toProfileData))
@@ -157,7 +166,16 @@ export function useSupabaseSync() {
         if (hrJobsResult.status === 'fulfilled') {
           if (isShared) {
             if (hrJobsResult.value.length > 0) {
-              store.setHrJobs(hrJobsResult.value.map((r) => toJobData(r as unknown as Record<string, unknown>, true)))
+              const remoteJobs = hrJobsResult.value.map((r) => toJobData(r as unknown as Record<string, unknown>, true))
+              const localJobs = [...store.hrJobs]
+              const merged = [...remoteJobs]
+              for (const lj of localJobs) {
+                const key = `${lj.name}|${lj.position}`
+                if (!merged.some((rj) => `${rj.name}|${rj.position}` === key)) {
+                  merged.push(lj)
+                }
+              }
+              store.setHrJobs(merged)
             }
           } else if (store.hrJobs.length === 0) {
             store.setHrJobs(hrJobsResult.value.map((r) => toJobData(r as unknown as Record<string, unknown>, true)))
