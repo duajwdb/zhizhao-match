@@ -142,6 +142,10 @@ export default function App() {
         } else {
           if (preservedMode === 'demo') {
             await rehydrateStore()
+            const state = useAppStore.getState()
+            if (state.isDemoUser && state.demoUserId) {
+              setDemoAuth(state.demoUserId, true)
+            }
           } else {
             setAuthMode('guest')
             await rehydrateStore()

@@ -27,7 +27,7 @@ export default function LoginPage() {
 
     try {
       const { userId, isSharedAccount } = await signInDemoAccount()
-      setAuthMode(isSharedAccount ? 'demo' : 'guest')
+      setAuthMode('demo')
       await rehydrateStore()
       setDemoAuth(userId, isSharedAccount)
     } catch (err) {
