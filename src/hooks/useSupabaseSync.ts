@@ -373,7 +373,10 @@ export function useSupabaseSync() {
 
   const syncGrowthRecord = useCallback(async (record: GrowthRecord): Promise<boolean> => {
     setSyncStatus('syncing')
-    store.addGrowthRecordLocal(record)
+    const exists = store.growthRecords.some((r) => r.profileId === record.profileId)
+    if (!exists) {
+      store.addGrowthRecordLocal(record)
+    }
     try {
       const result = await insertGrowthRecord({
         date: record.date,

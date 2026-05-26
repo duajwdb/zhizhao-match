@@ -287,7 +287,7 @@ export default function DashboardPage() {
                     <div>
                       <div className="flex items-center gap-2">
                         <h3 className="font-heading font-semibold text-white text-sm">
-                          {positionLabels[profile.position] || profile.position}
+                          {isPresetProfile(profile) ? '【预设】' : ''}{positionLabels[profile.position] || profile.position}
                         </h3>
                         <span className={`px-2 py-0.5 rounded-full text-[11px] font-medium ${
                           profile.starRating >= 4 ? 'bg-gold-500/15 text-gold-400' :

@@ -1,6 +1,6 @@
-import { useState, useMemo, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useAppStore, Position, DimensionScore } from '../store/useAppStore'
+import { useAppStore, Position, DimensionScore, type ProfileData } from '../store/useAppStore'
 import { fetchTalentPool, fetchJobPool, insertMatchResults } from '../services/database'
 import { getDimensionNames, getDimensionMax, AI_TALENTS, MODELER_TALENTS, AI_JOBS, MODELER_JOBS } from '../data/seedData'
 import type { SeedTalent, SeedJob } from '../data/seedData'
@@ -204,12 +204,14 @@ function getReputationBg(rating: number): string {
 }
 
 export default function MatchPage() {
-  const { selectedPosition, userMode, hrJobs, matchResults, setMatchResults, profileHistory, apiKey, setShowApiKeyModal, addJobseekerJob, addHrJob, addHrCandidate, hrCandidates } = useAppStore()
-  const navigate = useNavigate()
+  const { selectedPosition, userMode, hrJobs, matchResults, setMatchResults, getMergedProfileHistory, apiKey, setShowApiKeyModal, addJobseekerJob, addHrJob, addHrCandidate, hrCandidates } = useAppStore()
+
+const navigate = useNavigate()
   const { syncEvaluation, syncJobseekerJob, syncHrJob } = useSync()
 
   const [matchPhase, setMatchPhase] = useState<'select' | 'ready' | 'running' | 'results'>('select')
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null)
+  const [selectedSeekerProfile, setSelectedSeekerProfile] = useState<ProfileData | null>(null)
   const [selectedMatchPosition, setSelectedMatchPosition] = useState<Position>('ai_engineer')
   const [isRunning, setIsRunning] = useState(false)
   const [stage, setStage] = useState<'idle' | 'screening' | 'ranking' | 'done'>('idle')
@@ -228,9 +230,7 @@ export default function MatchPage() {
 
   const selectedJob = hrJobs.find((j) => j.id === selectedJobId) || null
 
-  const seekerProfile = useMemo(() => {
-    return profileHistory.filter((p) => p.mode === userMode).find((p) => p.position === selectedMatchPosition) ?? null
-  }, [profileHistory, userMode, selectedMatchPosition])
+  const seekerProfile = selectedSeekerProfile
 
   useEffect(() => {
     if (toastMessage) {
@@ -239,25 +239,14 @@ export default function MatchPage() {
     }
   }, [toastMessage])
 
-  const completedPositions = useMemo(() => {
-    const positions = new Set<string>()
-    profileHistory.forEach((p) => {
-      if (p.mode === userMode) {
-        positions.add(p.position)
-      }
-    })
-    return positions
-  }, [profileHistory, userMode])
-
-  const isTestCompleted = completedPositions.has(selectedMatchPosition)
-
   const handleSelectHRJob = (jobId: string) => {
     setSelectedJobId(jobId)
     setMatchPhase('ready')
   }
 
-  const handleSelectPosition = (pos: Position) => {
-    setSelectedMatchPosition(pos)
+  const handleSelectSeekerProfile = (profile: ProfileData) => {
+    setSelectedSeekerProfile(profile)
+    setSelectedMatchPosition(profile.position)
     setMatchPhase('ready')
   }
 
@@ -267,6 +256,7 @@ export default function MatchPage() {
 
   const handleBackToSelect = () => {
     setSelectedJobId(null)
+    setSelectedSeekerProfile(null)
     setMatchPhase('select')
   }
 
@@ -624,57 +614,60 @@ export default function MatchPage() {
               </>
             ) : (
               <>
-                <h3 className="font-heading font-semibold text-white text-lg mb-1">选择目标职业</h3>
-                <p className="text-sm text-slate-400 mb-6">选择您已完成测试的职业，系统将基于您的技能画像进行岗位匹配</p>
+                <h3 className="font-heading font-semibold text-white text-lg mb-1">选择历史技能画像</h3>
+                <p className="text-sm text-slate-400 mb-6">选择一份已完成测评的技能画像，系统将基于该画像进行岗位匹配</p>
 
-                <div className="grid grid-cols-2 gap-4 mb-6">
-                  {(['ai_engineer', '3d_modeler'] as Position[]).map((pos) => {
-                    const completed = completedPositions.has(pos)
+                {(() => {
+                  const mergedProfiles = getMergedProfileHistory()
+                  if (mergedProfiles.length === 0) {
                     return (
-                      <button
-                        key={pos}
-                        onClick={() => completed ? handleSelectPosition(pos) : null}
-                        className={`p-5 rounded-xl border transition-all text-left ${
-                          completed
-                            ? selectedMatchPosition === pos
-                              ? 'border-tech-500 bg-tech-500/10 hover:bg-tech-500/[0.12]'
-                              : 'border-white/5 bg-white/[0.02] hover:border-tech-500/30 hover:bg-white/[0.04]'
-                            : 'border-white/5 bg-white/[0.01] cursor-not-allowed opacity-60'
-                        }`}
-                      >
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <span className="font-heading font-semibold text-white">
-                                {POSITION_LABELS[pos]}
-                              </span>
-                              {completed ? (
-                                <span className="px-1.5 py-0.5 rounded text-[10px] bg-teal-500/10 text-teal-400 border border-teal-500/20">
-                                  已完成测试
-                                </span>
-                              ) : (
-                                <span className="px-1.5 py-0.5 rounded text-[10px] bg-slate-500/10 text-slate-500 border border-slate-500/20">
-                                  未测试
-                                </span>
-                              )}
-                            </div>
-                            <p className="text-xs text-slate-500 mt-1.5">
-                              {completed
-                                ? '可基于技能画像启动岗位匹配'
-                                : '需先完成标准化技能测试'}
-                            </p>
-                          </div>
+                      <div className="text-center py-8">
+                        <div className="w-14 h-14 mx-auto mb-3 rounded-xl bg-white/5 flex items-center justify-center">
+                          <Target className="w-7 h-7 text-slate-600" />
                         </div>
-                        {!completed && (
-                          <div className="mt-3 flex items-center gap-1 text-xs text-tech-400 hover:text-tech-300 transition-colors" onClick={(e) => { e.stopPropagation(); handleStartQuiz() }}>
-                            <Edit3 className="w-3 h-3" />
-                            去测试
-                          </div>
-                        )}
-                      </button>
+                        <p className="text-slate-400 text-sm mb-4">暂无技能画像，请先生成</p>
+                        <button onClick={() => navigate('/select-position')} className="btn-primary text-sm">
+                          生成技能画像
+                        </button>
+                      </div>
                     )
-                  })}
-                </div>
+                  }
+                  return (
+                    <div className="space-y-3 mb-6 max-h-[400px] overflow-y-auto">
+                      {mergedProfiles.map((profile) => {
+                        const isPreset = profile.name.startsWith('【预设】')
+                        return (
+                          <button
+                            key={`${profile.name}-${profile.position}-${profile.date}`}
+                            onClick={() => handleSelectSeekerProfile(profile)}
+                            className={`w-full text-left p-4 rounded-xl border transition-all ${
+                              selectedSeekerProfile?.name === profile.name && selectedSeekerProfile?.position === profile.position
+                                ? 'border-tech-500 bg-tech-500/10'
+                                : 'border-white/5 bg-white/[0.02] hover:border-white/10 hover:bg-white/[0.04]'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <p className="font-heading font-semibold text-white text-sm">{profile.name}</p>
+                                  {isPreset && (
+                                    <span className="px-1.5 py-0.5 rounded text-[10px] bg-gold-500/10 text-gold-400 border border-gold-500/20">
+                                      预设
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-xs text-slate-500 mt-0.5">
+                                  {POSITION_LABELS[profile.position as keyof typeof POSITION_LABELS]} · {profile.totalScore}分 · {profile.starRating}星 · {new Date(profile.date).toLocaleDateString('zh-CN')}
+                                </p>
+                              </div>
+                              <ArrowRight className={`w-4 h-4 transition-colors ${selectedSeekerProfile?.name === profile.name ? 'text-tech-400' : 'text-slate-600'}`} />
+                            </div>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  )
+                })()}
               </>
             )}
 
@@ -691,7 +684,7 @@ export default function MatchPage() {
               </div>
             )}
 
-            {(matchPhase === 'select' && (isHR ? selectedJobId : isTestCompleted)) ? (
+            {(matchPhase === 'select' && (isHR ? selectedJobId : selectedSeekerProfile)) ? (
               <div className="text-center">
                 {(!apiKey || apiKeyBlocked) && (
                   <div className="mb-6">
@@ -795,22 +788,64 @@ export default function MatchPage() {
               </div>
             )}
 
-            {!isHR && (
+            {!isHR && selectedSeekerProfile && (
               <div className="mb-6 p-4 rounded-xl bg-white/[0.02] border border-white/5 text-left">
-                <p className="text-xs text-slate-500 mb-1">匹配目标职业</p>
-                <p className="text-sm text-white font-medium">{POSITION_LABELS[selectedMatchPosition]}</p>
-                <p className="text-xs text-teal-400 mt-1">已通过标准化技能测试 ✓</p>
+                <p className="text-xs text-slate-500 mb-1">当前匹配画像</p>
+                <p className="text-sm text-white font-medium">{selectedSeekerProfile.name}</p>
+                <div className="flex items-center gap-3 mt-2 text-xs text-slate-400">
+                  <span>{POSITION_LABELS[selectedSeekerProfile.position as keyof typeof POSITION_LABELS]}</span>
+                  <span>{selectedSeekerProfile.totalScore}分</span>
+                  <span>{'★'.repeat(Math.round(selectedSeekerProfile.starRating))}</span>
+                  <span>{new Date(selectedSeekerProfile.date).toLocaleDateString('zh-CN')}</span>
+                </div>
+              </div>
+            )}
+
+            {(!apiKey || apiKeyBlocked) && (
+              <div className="mb-4">
+                <div className="p-4 rounded-xl bg-gold-500/5 border border-gold-500/10 text-left">
+                  <div className="flex items-start gap-3">
+                    <AlertCircle className="w-5 h-5 text-gold-400 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="text-sm font-heading font-semibold text-gold-300 mb-1">AI精排需要配置 API Key</p>
+                      <p className="text-xs text-slate-400 mb-3">
+                        启动匹配引擎的AI精排功能需要有效的 DeepSeek API Key。
+                        请在下方完成配置后再启动匹配。
+                      </p>
+                      <button
+                        onClick={() => {
+                          setApiKeyBlocked(false)
+                          setShowApiKeyModal(true)
+                        }}
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs bg-gold-500/10 text-gold-400 border border-gold-500/20 hover:bg-gold-500/20 transition-all"
+                      >
+                        <Key className="w-3.5 h-3.5" />
+                        配置 API Key
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
 
             <div className="flex items-center justify-center gap-4">
               <button onClick={handleBackToSelect} className="btn-secondary text-sm">
-                {isHR ? '重新选择岗位' : '重新选择职业'}
+                {isHR ? '重新选择岗位' : '重新选择画像'}
               </button>
-              <button onClick={handleRunMatch} className="btn-primary inline-flex items-center gap-2 text-sm">
-                <Zap className="w-4 h-4" />
-                启动匹配
-              </button>
+              {(!apiKey || apiKeyBlocked) ? (
+                <button
+                  disabled
+                  className="bg-slate-700 text-slate-500 px-4 py-2 rounded-xl font-heading font-semibold text-sm inline-flex items-center gap-2 cursor-not-allowed"
+                >
+                  <Key className="w-4 h-4" />
+                  请先配置 API Key
+                </button>
+              ) : (
+                <button onClick={handleRunMatch} className="btn-primary inline-flex items-center gap-2 text-sm">
+                  <Zap className="w-4 h-4" />
+                  启动匹配
+                </button>
+              )}
             </div>
           </motion.div>
         )}

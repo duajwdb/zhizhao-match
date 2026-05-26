@@ -425,17 +425,33 @@ ${profile.dimensions.map((d) => `- ${d.name}：${d.score}/${d.maxScore} 分（${
   const profileRef = useRef(profile)
   profileRef.current = profile
 
+  const updateGrowthPlanRef = useRef(updateGrowthPlanByProfileId)
+  updateGrowthPlanRef.current = updateGrowthPlanByProfileId
+
+  const syncGrowthRecordRef = useRef(syncGrowthRecord)
+  syncGrowthRecordRef.current = syncGrowthRecord
+
+  const localGrowthPlanMarkdownRef = useRef(localGrowthPlanMarkdown)
+  localGrowthPlanMarkdownRef.current = localGrowthPlanMarkdown
+
   useEffect(() => {
     if (!aiGrowthPlan || !profileRef.current?.id) return
-    updateGrowthPlanByProfileId(profileRef.current.id, aiGrowthPlan)
-    syncGrowthRecord({
+    updateGrowthPlanRef.current(profileRef.current.id, aiGrowthPlan)
+    syncGrowthRecordRef.current({
       date: profileRef.current.date,
       score: profileRef.current.totalScore,
       curveNode: profileRef.current.curveNode,
-      growthPlan: aiGrowthPlan || localGrowthPlanMarkdown,
+      growthPlan: aiGrowthPlan || localGrowthPlanMarkdownRef.current,
       profileId: profileRef.current.id,
     })
-  }, [aiGrowthPlan, updateGrowthPlanByProfileId, syncGrowthRecord, localGrowthPlanMarkdown])
+  }, [aiGrowthPlan])
+
+  const relatedGrowthRecords = useMemo(() => {
+    if (!profile) return []
+    return growthRecords
+      .filter((r) => r.profileId === profile.id)
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+  }, [growthRecords, profile])
 
   const filteredProfiles = profileHistory.filter((p) => p.mode === userMode)
 
@@ -912,26 +928,31 @@ ${profile.dimensions.map((d) => `- ${d.name}：${d.score}/${d.maxScore} 分（${
               历史成绩对比
             </h3>
             <div className="space-y-3">
-              {growthRecords.map((record, i) => (
-                <div key={i} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs text-slate-500">{new Date(record.date).toLocaleDateString('zh-CN')}</span>
-                    <span className="text-sm text-slate-300">{record.curveNode}</span>
+              {relatedGrowthRecords.map((record, i) => {
+                const isCurrent = record.score === profile.totalScore && record.date === profile.date
+                return (
+                  <div key={i} className={`flex items-center justify-between py-2 border-b border-white/5 last:border-0 ${isCurrent ? 'bg-tech-500/5 -mx-3 px-3 rounded-lg' : ''}`}>
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs text-slate-500">{new Date(record.date).toLocaleDateString('zh-CN')}</span>
+                      <span className="text-sm text-slate-300">{record.curveNode}</span>
+                      {isCurrent && <span className="text-[10px] px-1.5 py-0.5 rounded bg-tech-500/15 text-tech-400">当前</span>}
+                    </div>
+                    <span className="font-heading font-bold text-tech-400">
+                      {record.score}分
+                    </span>
                   </div>
-                  <span className={`font-heading font-bold ${record.score >= profile.totalScore ? 'text-teal-400' : 'text-slate-400'}`}>
-                    {record.score}分
-                    {i === 0 && record.score < profile.totalScore && <span className="text-green-400 text-xs ml-1">↑{profile.totalScore - record.score}</span>}
-                  </span>
+                )
+              })}
+              {relatedGrowthRecords.length === 0 && (
+                <div className="flex items-center justify-between py-2">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs text-slate-500">{new Date(profile.date).toLocaleDateString('zh-CN')}</span>
+                    <span className="text-sm text-white font-medium">{profile.curveNode}</span>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-tech-500/15 text-tech-400">当前</span>
+                  </div>
+                  <span className="font-heading font-bold text-tech-400">{profile.totalScore}分</span>
                 </div>
-              ))}
-              <div className="flex items-center justify-between py-2">
-                <div className="flex items-center gap-3">
-                  <span className="text-xs text-slate-500">{new Date(profile.date).toLocaleDateString('zh-CN')}</span>
-                  <span className="text-sm text-white font-medium">{profile.curveNode}</span>
-                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-tech-500/15 text-tech-400">当前</span>
-                </div>
-                <span className="font-heading font-bold text-tech-400">{profile.totalScore}分</span>
-              </div>
+              )}
             </div>
           </motion.div>
         )}

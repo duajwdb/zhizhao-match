@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
 import type { PersistStorage } from 'zustand/middleware'
-import { getPresetProfilesByMode, getPresetHrJobs } from '../data/presetProfiles'
+import { getPresetProfilesByMode, getPresetHrJobs, PRESET_JOBSEEKER_PROFILES, PRESET_STUDENT_PROFILES } from '../data/presetProfiles'
 
 const DEMO_STORAGE_KEY = 'zhizhao-store-demo'
 const GUEST_STORAGE_KEY = 'zhizhao-store-guest'
@@ -197,7 +197,7 @@ export interface AppState {
   addSavedProfileId: (id: string) => void
   resetAllData: () => void
   logout: () => void
-  loadPresets: (mode: UserMode) => void
+  loadPresets: () => void
   isPresetProfile: (profile: ProfileData) => boolean
   isPresetJob: (job: JobData) => boolean
   getMergedProfileHistory: () => ProfileData[]
@@ -457,9 +457,9 @@ export const useAppStore = create<AppState>()(
           presetLoaded,
         })
       },
-      loadPresets: (mode) => {
+      loadPresets: () => {
         if (get().presetLoaded) return
-        const profiles = getPresetProfilesByMode(mode)
+        const profiles = [...PRESET_JOBSEEKER_PROFILES, ...PRESET_STUDENT_PROFILES]
         const jobs = getPresetHrJobs()
         set({ presetProfiles: profiles, presetJobs: jobs, presetLoaded: true })
       },

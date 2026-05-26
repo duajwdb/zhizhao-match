@@ -28,15 +28,15 @@ export function useSync(): SyncContextValue {
 
 export function SyncProvider({ children }: { children: ReactNode }) {
   const sync = useSupabaseSync()
-  const { isDemoUser, isAuthReady, loadPresets, userMode } = useAppStore()
+  const { isDemoUser, isAuthReady, loadPresets } = useAppStore()
   const presetsLoaded = useRef(false)
 
   useEffect(() => {
     if ((isDemoUser || isAuthReady) && !presetsLoaded.current) {
       presetsLoaded.current = true
-      loadPresets(userMode)
+      loadPresets()
     }
-  }, [isDemoUser, isAuthReady, userMode, loadPresets])
+  }, [isDemoUser, isAuthReady, loadPresets])
 
   const value: SyncContextValue = {
     syncStatus: sync.syncStatus,

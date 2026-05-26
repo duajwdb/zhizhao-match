@@ -87,7 +87,7 @@ function jobseekerProfile(
 ): ProfileData {
   const dims = makeDimensions(dimNames, dimMax, scores)
   return {
-    name,
+    name: `【预设】${name}`,
     position: pos,
     mode: 'jobseeker',
     dimensions: dims,
@@ -105,7 +105,7 @@ function studentProfile(
 ): ProfileData {
   const dims = makeDimensions(dimNames, dimMax, scores)
   return {
-    name,
+    name: `【预设】${name}`,
     position: pos,
     mode: 'student',
     dimensions: dims,
@@ -124,7 +124,7 @@ function hrJob(
   const dims = makeDimensions(dimNames, dimMax, scores)
   return {
     id: `preset_hr_${pos}_${level}`,
-    name,
+    name: `【预设】${name}`,
     position: pos,
     status: 'active',
     createdAt: dateStr(dateOffset),

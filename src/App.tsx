@@ -88,7 +88,7 @@ function AppMain() {
 }
 
 export default function App() {
-  const { isDemoUser, isAuthReady, setDemoAuth, setAuthReady, resetAuth, loadPresets } = useAppStore()
+  const { isDemoUser, isAuthReady, setDemoAuth, setAuthReady, resetAuth } = useAppStore()
   const [initError, setInitError] = useState<string | null>(null)
   const [retryKey, setRetryKey] = useState(0)
 
